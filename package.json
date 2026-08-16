@@ -1,0 +1,29 @@
+{
+  "name": "chatgpt-api-web",
+  "version": "1.0.0",
+  "description": "Local OpenAI-compatible API backed by a ChatGPT Web session via Chrome CDP and Playwright.",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "playwright": "^1.62.1"
+  },
+  "keywords": [
+    "chatgpt",
+    "openai-compatible",
+    "api",
+    "playwright",
+    "chrome",
+    "cdp",
+    "sse",
+    "local"
+  ],
+  "license": "MIT"
+}

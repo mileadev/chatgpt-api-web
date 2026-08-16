@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+  <defs>
+    <linearGradient id="box" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#38bdf8"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="500" rx="28" fill="#0b1020"/>
+
+  <text x="600" y="58" text-anchor="middle" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700">
+    Request flow
+  </text>
+
+  <rect x="60" y="165" width="240" height="120" rx="20" fill="url(#box)" stroke="#475569" stroke-width="2"/>
+  <text x="180" y="211" text-anchor="middle" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700">Your App</text>
+  <text x="180" y="246" text-anchor="middle" fill="#94a3b8" font-family="Inter,Arial,sans-serif" font-size="16">Python · Node · Web UI</text>
+
+  <rect x="360" y="135" width="280" height="180" rx="20" fill="url(#box)" stroke="#7c3aed" stroke-width="3"/>
+  <text x="500" y="185" text-anchor="middle" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="700">chatgpt-api-web</text>
+  <text x="500" y="222" text-anchor="middle" fill="#cbd5e1" font-family="Inter,Arial,sans-serif" font-size="16">REST API</text>
+  <text x="500" y="248" text-anchor="middle" fill="#cbd5e1" font-family="Inter,Arial,sans-serif" font-size="16">Conversation mapping</text>
+  <text x="500" y="274" text-anchor="middle" fill="#cbd5e1" font-family="Inter,Arial,sans-serif" font-size="16">SSE + queue</text>
+
+  <rect x="700" y="165" width="190" height="120" rx="20" fill="url(#box)" stroke="#475569" stroke-width="2"/>
+  <text x="795" y="211" text-anchor="middle" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700">Chrome</text>
+  <text x="795" y="246" text-anchor="middle" fill="#94a3b8" font-family="Inter,Arial,sans-serif" font-size="16">CDP + Playwright</text>
+
+  <rect x="950" y="165" width="190" height="120" rx="20" fill="url(#box)" stroke="#06b6d4" stroke-width="3"/>
+  <text x="1045" y="211" text-anchor="middle" fill="#f8fafc" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="700">ChatGPT Web</text>
+  <text x="1045" y="246" text-anchor="middle" fill="#94a3b8" font-family="Inter,Arial,sans-serif" font-size="16">Logged-in session</text>
+
+  <line x1="300" y1="225" x2="360" y2="225" stroke="url(#line)" stroke-width="5" marker-end="url(#arrow)"/>
+  <line x1="640" y1="225" x2="700" y2="225" stroke="url(#line)" stroke-width="5" marker-end="url(#arrow)"/>
+  <line x1="890" y1="225" x2="950" y2="225" stroke="url(#line)" stroke-width="5" marker-end="url(#arrow)"/>
+
+  <rect x="180" y="360" width="840" height="70" rx="18" fill="#111827" stroke="#334155"/>
+  <text x="600" y="402" text-anchor="middle" fill="#cbd5e1" font-family="Inter,Arial,sans-serif" font-size="18">
+    Local by default · API on 127.0.0.1:3000 · Chrome profile stored locally
+  </text>
+</svg>
