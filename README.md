@@ -1,7 +1,7 @@
 # chatgpt-api-web
 
 <p align="center">
-  <img src="docs/banner.svg" alt="chatgpt-api-web banner" width="900">
+  <img src="docs/banner.jpg" alt="chatgpt-api-web banner" width="900">
 </p>
 
 <p align="center">
