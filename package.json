@@ -20,6 +20,9 @@
     "express": "5.2.1",
     "playwright": "1.62.1"
   },
+  "overrides": {
+    "qs": "6.16.0"
+  },
   "keywords": [
     "chatgpt",
     "openai-compatible",
