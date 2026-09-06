@@ -1,128 +1,75 @@
 "use strict";
 
-const path = require("path");
 const fs = require("fs");
 const { chromium } = require("playwright");
+const { buildConfig } = require("./lib/config");
+const { ensurePrivateDirectory } = require("./lib/store");
 
-const USER_DATA_DIR = path.resolve(
-  process.env.USER_DATA_DIR ||
-    path.join(
-      __dirname,
-      "data",
-      "chatgpt-profile"
-    )
-);
+const config = buildConfig();
 
-async function main() {
-  fs.mkdirSync(
-    USER_DATA_DIR,
-    {
-      recursive: true
-    }
-  );
-
-  console.log("");
-  console.log(
-    "========================================"
-  );
-  console.log(
-    " ChatGPT Session Initialization"
-  );
-  console.log(
-    "========================================"
-  );
-  console.log("");
-  console.log(
-    `Profile: ${USER_DATA_DIR}`
-  );
-  console.log("");
-  console.log(
-    "1. Sign in to ChatGPT."
-  );
-  console.log(
-    "2. Complete any required verification challenges."
-  );
-  console.log(
-    "3. Make sure the conversation page is accessible."
-  );
-  console.log(
-    "4. Close the browser or press Ctrl+C."
-  );
-  console.log("");
-
-  const context =
-    await chromium.launchPersistentContext(
-      USER_DATA_DIR,
-      {
-        headless: false,
-
-        viewport: {
-          width: 1440,
-          height: 1000
-        },
-
-        locale: "fr-FR",
-
-        handleSIGINT: false,
-        handleSIGTERM: false,
-        handleSIGHUP: false
-      }
-    );
-
-  const pages =
-    context.pages();
-
-  const page =
-    pages.length > 0
-      ? pages[0]
-      : await context.newPage();
-
-  await page.goto(
-    "https://chatgpt.com",
-    {
-      waitUntil:
-        "domcontentloaded",
-
-      timeout:
-        30_000
-    }
-  );
-
-  console.log(
-    "Browser opened."
-  );
-
-  process.on(
-    "SIGINT",
-    async () => {
-      console.log(
-        "\nClosing profile..."
-      );
-
-      await context.close();
-
-      console.log(
-        "Session saved."
-      );
-
-      process.exit(0);
-    }
-  );
-
-  /*
-   * Keep the process alive.
-   */
-  await new Promise(
-    () => {}
-  );
+function validateChromePath(chromePath) {
+  if (!chromePath || !fs.existsSync(chromePath) || !fs.statSync(chromePath).isFile()) {
+    throw new Error(`Chrome executable not found: ${chromePath}`);
+  }
+  if (process.platform !== "win32") fs.accessSync(chromePath, fs.constants.X_OK);
+  return chromePath;
 }
 
-main().catch(
-  (error) => {
-    console.error(
-      error
-    );
+async function main() {
+  ensurePrivateDirectory(config.DATA_DIR);
+  ensurePrivateDirectory(config.PROFILE_DIR);
+  const executablePath = validateChromePath(config.CHROME_PATH);
 
-    process.exit(1);
+  process.stdout.write([
+    "",
+    "========================================",
+    " ChatGPT Session Initialization",
+    "========================================",
+    "",
+    `Profile: ${config.PROFILE_DIR}`,
+    "",
+    "1. Sign in to ChatGPT in the opened Chrome window.",
+    "2. Complete any required verification challenges.",
+    "3. Confirm the ChatGPT conversation page is usable.",
+    "4. Press Ctrl+C to close Chrome and persist the profile.",
+    ""
+  ].join("\n"));
+
+  const context = await chromium.launchPersistentContext(config.PROFILE_DIR, {
+    executablePath,
+    headless: false,
+    viewport: { width: 1440, height: 1000 },
+    locale: config.LOCALE,
+    handleSIGINT: false,
+    handleSIGTERM: false,
+    handleSIGHUP: false,
+    args: ["--no-first-run", "--no-default-browser-check", "--disable-sync"]
+  });
+
+  const pages = context.pages();
+  const page = pages.length ? pages[0] : await context.newPage();
+  await page.goto(config.CHATGPT_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+  process.stdout.write("Browser opened.\n");
+
+  let closing = false;
+  async function close(signal) {
+    if (closing) return;
+    closing = true;
+    process.stdout.write(`\n${signal}: closing profile...\n`);
+    try {
+      await context.close();
+    } finally {
+      process.stdout.write("Session profile saved.\n");
+    }
+    process.exitCode = 0;
   }
-);
+
+  process.once("SIGINT", () => { void close("SIGINT"); });
+  process.once("SIGTERM", () => { void close("SIGTERM"); });
+  await new Promise(() => {});
+}
+
+main().catch((error) => {
+  process.stderr.write(`${error.stack || error.message}\n`);
+  process.exitCode = 1;
+});
