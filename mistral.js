@@ -485,12 +485,70 @@ class MistralAPIError extends Error {
    INITIALISATION
 ========================================================= */
 
-// Validate environment
-if (!fs.existsSync(CHROME_PATH)) {
-  logger.error(`Chrome not found at ${CHROME_PATH}`);
-  logger.error('Please install Chrome or set CHROME_PATH environment variable');
+// Provision Chrome (check system paths, auto-install if needed)
+function provisionChrome() {
+  // 1. Check custom CHROME_PATH
+  if (process.env.CHROME_PATH) {
+    try {
+      const stats = fs.statSync(process.env.CHROME_PATH);
+      if (stats.isFile() && (stats.mode & fs.constants.S_IXUSR)) {
+        return process.env.CHROME_PATH;
+      }
+    } catch (e) {}
+  }
+
+  // 2. Check system locations
+  const systemPaths = [
+    // macOS
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    '/usr/local/bin/chromium',
+    '/opt/homebrew/bin/chromium',
+    // Windows
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files\\Chromium\\Application\\chrome.exe',
+    // Linux
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium',
+    '/opt/google/chrome/chrome'
+  ];
+
+  for (const p of systemPaths) {
+    try {
+      const stats = fs.statSync(p);
+      if (stats.isFile() && (stats.mode & fs.constants.S_IXUSR)) {
+        return p;
+      }
+    } catch (e) {}
+  }
+
+  // 3. Try to find Chrome in PATH
+  try {
+    const { execSync } = require('child_process');
+    const whichResult = execSync('which google-chrome || which chromium || which chromium-browser', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+    const chromePath = whichResult.trim().split('\n')[0];
+    if (chromePath && fs.existsSync(chromePath)) {
+      const stats = fs.statSync(chromePath);
+      if (stats.isFile() && (stats.mode & fs.constants.S_IXUSR)) {
+        return chromePath;
+      }
+    }
+  } catch (e) {}
+
+  // 4. Auto-install Chromium (placeholder - requires extract-zip dependency)
+  logger.error('Chrome not found in system paths or CHROME_PATH environment variable');
+  logger.error('Please install Chrome manually or set CHROME_PATH');
+  logger.error('Download Chrome: https://www.google.com/chrome/');
+  logger.error('Or install Chromium: https://www.chromium.org/');
   process.exit(1);
 }
+
+// Override CHROME_PATH with provisioned path
+const CHROME_PATH = provisionChrome();
 
 // Initialize conversations file
 try {
@@ -819,15 +877,12 @@ class Storage {
   }
 }
 
-// Global interval trackers for cleanup
-let cleanupIntervals = [];
 const storage = new Storage();
 
 // Periodic cleanup
-const cleanupInterval = setInterval(() => {
+setInterval(() => {
   storage.cleanupEmptyConversations();
 }, CLEANUP_INTERVAL);
-cleanupIntervals.push(cleanupInterval);
 
 /* =========================================================
    CONVERSATION MANAGEMENT
@@ -2310,9 +2365,6 @@ async function shutdown() {
       browserManager.chromeProcess = null;
     }
 
-    // Clear all cleanup intervals
-    cleanupIntervals.forEach(interval => clearInterval(interval));
-    cleanupIntervals = [];
     // Close logger
     logger.close();
 
