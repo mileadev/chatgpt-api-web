@@ -1,29 +1,27 @@
 {
   "name": "chatgpt-api-web",
-  "version": "1.0.0",
-  "description": "Local OpenAI-compatible API backed by a ChatGPT Web session via Chrome CDP and Playwright.",
+  "version": "1.1.0-optimized",
+  "description": "Local OpenAI-compatible API backed by a ChatGPT Web session via Chrome CDP and Playwright - Optimized Version",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node index.js",
-    "test": "node test.js"
+    "start:secure": "HOST=127.0.0.1 node index.js",
+    "test": "node test.js",
+    "health": "curl http://localhost:3000/health",
+    "test:openai": "node openai-test.js"
   },
   "engines": {
     "node": ">=18.18"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
     "playwright": "^1.62.1"
   },
-  "keywords": [
-    "chatgpt",
-    "openai-compatible",
-    "api",
-    "playwright",
-    "chrome",
-    "cdp",
-    "sse",
-    "local"
-  ],
+  "keywords": ["chatgpt", "openai-compatible", "api", "playwright", "chrome", "cdp", "sse", "local", "security", "optimized"],
+  "author": "MrBalourd (original)",
   "license": "MIT"
 }
