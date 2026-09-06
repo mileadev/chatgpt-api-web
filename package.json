@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start:mistral": "node mistral_perfect.js",
+    "start:mistral": "node mistral.js",
     "start:mcp": "node mcp-server-mistral.js",
     "dev": "nodemon index.js",
-    "dev:mistral": "nodemon mistral_perfect.js",
+    "dev:mistral": "nodemon mistral.js",
     "test": "node test.js",
     "test:mistral": "node test.js --mistral",
     "health": "curl http://localhost:3001/health",
