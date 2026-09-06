@@ -1,47 +1,64 @@
 {
   "name": "chatgpt-api-web",
-  "version": "1.2.0",
-  "description": "Hardened local OpenAI-compatible APIs backed by authenticated ChatGPT and Mistral Web sessions via Chrome CDP and Playwright.",
+  "version": "2.0.0-perfect",
+  "description": "Production-grade Mistral Web Chat API with MCP Server support",
   "main": "index.js",
-  "type": "commonjs",
   "scripts": {
     "start": "node index.js",
-    "start:chatgpt": "node index.js",
-    "start:mistral": "node mistral.js",
-    "init-session": "node init-session.js",
-    "init-session:chatgpt": "node init-session.js",
-    "init-session:mistral": "node init-mistral-session.js",
-    "check": "node --check index.js && node --check mistral.js && node --check init-session.js && node --check init-mistral-session.js && node --check openai-test.js && node --check test.js && node --check lib/config.js && node --check lib/security.js && node --check lib/store.js && node --check lib/logger.js && node --check lib/browser.js && node --check lib/server.js && node --check lib/session-init.js && node --check lib/provider-config.js && node --check test/security.test.js && node --check test/store.test.js && node --check test/provider.test.js",
-    "test": "npm run check && node test/security.test.js && node test/store.test.js && node test/provider.test.js",
-    "test:integration": "node test.js",
-    "test:openai": "node openai-test.js",
-    "audit": "npm audit --omit=dev --audit-level=high"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "dependencies": {
-    "express": "5.2.1",
-    "playwright": "1.62.1"
-  },
-  "overrides": {
-    "qs": "6.16.0"
+    "start:mistral": "node mistral_perfect.js",
+    "start:mcp": "node mcp-server-mistral.js",
+    "dev": "nodemon index.js",
+    "dev:mistral": "nodemon mistral_perfect.js",
+    "test": "node test.js",
+    "test:mistral": "node test.js --mistral",
+    "health": "curl http://localhost:3001/health",
+    "metrics": "curl http://localhost:3001/metrics"
   },
   "keywords": [
     "chatgpt",
     "mistral",
-    "openai-compatible",
     "api",
-    "playwright",
-    "chrome",
-    "cdp",
-    "sse",
-    "local",
-    "security"
+    "web",
+    "automation",
+    "mcp",
+    "model-context-protocol"
   ],
+  "author": "mileadev",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "playwright": "^1.44.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/mileadev/chatgpt-api-web.git"
   },
-  "license": "MIT"
+  "bugs": {
+    "url": "https://github.com/mileadev/chatgpt-api-web/issues"
+  },
+  "homepage": "https://github.com/mileadev/chatgpt-api-web#readme",
+  "config": {
+    "security": {
+      "rateLimit": {
+        "windowMs": 60000,
+        "max": 200
+      },
+      "cors": {
+        "origin": ["http://localhost:3000", "https://localhost:3000"],
+        "credentials": true
+      }
+    }
+  }
 }
