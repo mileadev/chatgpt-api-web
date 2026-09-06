@@ -1,113 +1,41 @@
 "use strict";
 
-const BASE_URL =
-  process.env.API_URL ||
-  "http://127.0.0.1:3000";
+const BASE_URL = process.env.API_URL || "http://127.0.0.1:3000";
+const API_KEY = process.env.API_KEY || "";
 
 async function main() {
-  console.log("");
-  console.log("==========================================");
-  console.log("        OpenAI COMPATIBILITY TEST");
-  console.log("==========================================");
-  console.log("");
-  console.log(`API : ${BASE_URL}`);
-  console.log("");
+  const response = await fetch(`${BASE_URL}/v1/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {})
+    },
+    body: JSON.stringify({
+      model: "chatgpt-web",
+      messages: [
+        {
+          role: "user",
+          content: "Reply with exactly OPENAI_COMPATIBLE_OK and nothing else."
+        }
+      ]
+    })
+  });
 
-  const response = await fetch(
-    `${BASE_URL}/v1/chat/completions`,
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        model: "chatgpt-web",
-
-        messages: [
-          {
-            role: "user",
-            content:
-              "Réponds uniquement : OPENAI_COMPATIBLE_OK",
-          },
-        ],
-      }),
-    }
-  );
-
-  const text =
-    await response.text();
-
+  const text = await response.text();
   let data;
-
   try {
-    data =
-      JSON.parse(text);
+    data = JSON.parse(text);
   } catch {
-    throw new Error(
-      `Réponse JSON invalide : ${text}`
-    );
+    throw new Error(`Invalid JSON response: ${text}`);
   }
+  if (!response.ok) throw new Error(JSON.stringify(data, null, 2));
 
-  if (!response.ok) {
-    throw new Error(
-      JSON.stringify(
-        data,
-        null,
-        2
-      )
-    );
-  }
-
-  const content =
-    data
-      ?.choices?.[0]
-      ?.message
-      ?.content;
-
-  if (
-    content !==
-    "OPENAI_COMPATIBLE_OK"
-  ) {
-    throw new Error(
-      `Réponse inattendue : ${content}`
-    );
-  }
-
-  console.log(
-    "✓ Endpoint OpenAI-compatible opérationnel"
-  );
-
-  console.log(
-    `✓ Réponse : ${content}`
-  );
-
-  console.log(
-    `✓ conversation_id : ${data.conversation_id}`
-  );
-
-  console.log(
-    `✓ chatgpt_id      : ${data.chatgpt_id}`
-  );
-
-  console.log("");
-  console.log(
-    "🔥 OPENAI COMPATIBLE TEST PASSED"
-  );
-  console.log("");
-
-  process.exit(0);
+  const content = data?.choices?.[0]?.message?.content?.trim();
+  if (content !== "OPENAI_COMPATIBLE_OK") throw new Error(`Unexpected response: ${content}`);
+  process.stdout.write(`OpenAI-compatible endpoint OK\nconversation_id=${data.conversation_id}\nchatgpt_id=${data.chatgpt_id}\n`);
 }
 
 main().catch((error) => {
-  console.error("");
-  console.error(
-    "❌ OPENAI COMPATIBLE TEST FAILED"
-  );
-  console.error("");
-  console.error(error.message);
-  console.error("");
-
-  process.exit(1);
+  process.stderr.write(`${error.stack || error.message}\n`);
+  process.exitCode = 1;
 });
