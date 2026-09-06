@@ -1,11 +1,12 @@
 "use strict";
 
 const { buildConfig } = require("./lib/config");
-const { createChatGPTProvider } = require("./lib/browser");
+const { createMistralProvider } = require("./lib/browser");
+const { buildMistralEnvironment } = require("./lib/provider-config");
 const { initializeSession } = require("./lib/session-init");
 
-const config = buildConfig();
-const provider = createChatGPTProvider(config);
+const config = buildConfig(buildMistralEnvironment());
+const provider = createMistralProvider();
 
 initializeSession(config, provider).catch((error) => {
   process.stderr.write(`${error.stack || error.message}\n`);

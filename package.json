@@ -1,14 +1,18 @@
 {
   "name": "chatgpt-api-web",
   "version": "1.2.0",
-  "description": "Hardened local OpenAI-compatible API backed by an authenticated ChatGPT Web session via Chrome CDP and Playwright.",
+  "description": "Hardened local OpenAI-compatible APIs backed by authenticated ChatGPT and Mistral Web sessions via Chrome CDP and Playwright.",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node index.js",
+    "start:chatgpt": "node index.js",
+    "start:mistral": "node mistral.js",
     "init-session": "node init-session.js",
-    "check": "node --check index.js && node --check init-session.js && node --check openai-test.js && node --check test.js && node --check lib/config.js && node --check lib/security.js && node --check lib/store.js && node --check lib/logger.js && node --check lib/browser.js && node --check test/security.test.js && node --check test/store.test.js",
-    "test": "npm run check && node test/security.test.js && node test/store.test.js",
+    "init-session:chatgpt": "node init-session.js",
+    "init-session:mistral": "node init-mistral-session.js",
+    "check": "node --check index.js && node --check mistral.js && node --check init-session.js && node --check init-mistral-session.js && node --check openai-test.js && node --check test.js && node --check lib/config.js && node --check lib/security.js && node --check lib/store.js && node --check lib/logger.js && node --check lib/browser.js && node --check lib/server.js && node --check lib/session-init.js && node --check lib/provider-config.js && node --check test/security.test.js && node --check test/store.test.js && node --check test/provider.test.js",
+    "test": "npm run check && node test/security.test.js && node test/store.test.js && node test/provider.test.js",
     "test:integration": "node test.js",
     "test:openai": "node openai-test.js",
     "audit": "npm audit --omit=dev --audit-level=high"
@@ -25,6 +29,7 @@
   },
   "keywords": [
     "chatgpt",
+    "mistral",
     "openai-compatible",
     "api",
     "playwright",

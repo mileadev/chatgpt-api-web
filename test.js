@@ -1,10 +1,11 @@
 "use strict";
 
 const BASE_URL = process.env.API_URL || "http://127.0.0.1:3000";
-const API_KEY = process.env.API_KEY || "";
-const createdConversations = new Set();
+const API_KEY = process.env.API_KEY || process.env.MISTRAL_API_KEY || "";
 let conversationId = null;
-let chatgptId = null;
+let providerId = null;
+let providerIdField = null;
+let modelId = null;
 
 function headers(extra = {}) {
   return {
@@ -77,9 +78,8 @@ async function expect(name, fn) {
 }
 
 async function cleanup() {
-  for (const id of createdConversations) {
-    try { await jsonRequest("DELETE", `/v1/conversations/${id}`); } catch {}
-  }
+  if (!conversationId) return;
+  try { await jsonRequest("DELETE", `/v1/conversations/${conversationId}`); } catch {}
 }
 
 async function main() {
@@ -88,16 +88,18 @@ async function main() {
     if (response.status !== 200 || !data?.connected) throw new Error(JSON.stringify(data));
   });
 
-  await expect("models", async () => {
+  await expect("model discovery", async () => {
     const { response, data } = await jsonRequest("GET", "/v1/models");
-    if (response.status !== 200 || !data?.data?.some((item) => item.id === "chatgpt-web")) {
+    if (response.status !== 200 || !Array.isArray(data?.data) || !data.data[0]?.id) {
       throw new Error(JSON.stringify(data));
     }
+    modelId = data.data[0].id;
+    providerIdField = modelId.startsWith("mistral") ? "mistral_id" : "chatgpt_id";
   });
 
   await expect("non-stream completion", async () => {
     const { response, data } = await jsonRequest("POST", "/v1/chat/completions", {
-      model: "chatgpt-web",
+      model: modelId,
       messages: [{ role: "user", content: "Reply with exactly MEMORY_ALPHA_123 and nothing else." }]
     });
     if (response.status !== 200) throw new Error(JSON.stringify(data));
@@ -105,34 +107,35 @@ async function main() {
       throw new Error(`Unexpected response: ${data?.choices?.[0]?.message?.content}`);
     }
     conversationId = data.conversation_id;
-    chatgptId = data.chatgpt_id;
-    if (!conversationId || !chatgptId) throw new Error("conversation_id/chatgpt_id missing");
-    createdConversations.add(conversationId);
+    providerId = data[providerIdField];
+    if (!conversationId || !providerId) throw new Error(`Missing conversation_id/${providerIdField}`);
   });
 
-  await expect("conversation continuity", async () => {
-    const byConversation = await jsonRequest("POST", "/v1/chat/completions", {
-      model: "chatgpt-web",
+  await expect("conversation_id continuity", async () => {
+    const result = await jsonRequest("POST", "/v1/chat/completions", {
+      model: modelId,
       conversation_id: conversationId,
       messages: [{ role: "user", content: "Reply with exactly the marker from my first message and nothing else." }]
     });
-    if (byConversation.response.status !== 200 || byConversation.data?.choices?.[0]?.message?.content?.trim() !== "MEMORY_ALPHA_123") {
-      throw new Error(JSON.stringify(byConversation.data));
+    if (result.response.status !== 200 || result.data?.choices?.[0]?.message?.content?.trim() !== "MEMORY_ALPHA_123") {
+      throw new Error(JSON.stringify(result.data));
     }
+  });
 
-    const byChatGPT = await jsonRequest("POST", "/v1/chat/completions", {
-      model: "chatgpt-web",
-      chatgpt_id: chatgptId,
+  await expect(`${providerIdField} continuity`, async () => {
+    const result = await jsonRequest("POST", "/v1/chat/completions", {
+      model: modelId,
+      [providerIdField]: providerId,
       messages: [{ role: "user", content: "Reply with exactly MEMORY_ALPHA_123 and nothing else." }]
     });
-    if (byChatGPT.response.status !== 200 || byChatGPT.data?.choices?.[0]?.message?.content?.trim() !== "MEMORY_ALPHA_123") {
-      throw new Error(JSON.stringify(byChatGPT.data));
+    if (result.response.status !== 200 || result.data?.choices?.[0]?.message?.content?.trim() !== "MEMORY_ALPHA_123") {
+      throw new Error(JSON.stringify(result.data));
     }
   });
 
   await expect("conversation read and rename", async () => {
     const before = await jsonRequest("GET", `/v1/conversations/${conversationId}`);
-    if (before.response.status !== 200 || before.data?.conversation?.chatgpt_id !== chatgptId) {
+    if (before.response.status !== 200 || before.data?.conversation?.[providerIdField] !== providerId) {
       throw new Error(JSON.stringify(before.data));
     }
     const updated = await jsonRequest("PATCH", `/v1/conversations/${conversationId}`, { title: "Integration test" });
@@ -143,8 +146,9 @@ async function main() {
 
   await expect("SSE streaming", async () => {
     const result = await streamRequest({
-      model: "chatgpt-web",
+      model: modelId,
       stream: true,
+      conversation_id: conversationId,
       messages: [{ role: "user", content: "Reply with exactly STREAM_TEST_OK and nothing else." }]
     });
     if (result.text !== "STREAM_TEST_OK" || !result.sawFinish || !result.sawDone) {
@@ -153,7 +157,7 @@ async function main() {
   });
 
   await expect("validation", async () => {
-    const empty = await jsonRequest("POST", "/v1/chat/completions", { model: "chatgpt-web", messages: [] });
+    const empty = await jsonRequest("POST", "/v1/chat/completions", { model: modelId, messages: [] });
     if (empty.response.status !== 400) throw new Error(`Empty messages HTTP ${empty.response.status}`);
     const badModel = await jsonRequest("POST", "/v1/chat/completions", {
       model: "not-a-model",
@@ -163,7 +167,7 @@ async function main() {
   });
 
   await cleanup();
-  process.stdout.write("integration tests passed\n");
+  process.stdout.write(`integration tests passed for ${modelId}\n`);
 }
 
 main().catch(async () => {

@@ -1,5 +1,8 @@
 node_modules/
 data/
+data-*/
+**/chrome-profile/
+**/chatgpt-profile/
 .env
 .env.*
 !.env.example

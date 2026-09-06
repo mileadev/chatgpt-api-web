@@ -4,54 +4,50 @@
   <img src="docs/banner.jpg" alt="chatgpt-api-web banner" width="900">
 </p>
 
-A hardened local OpenAI-compatible API backed by a real authenticated ChatGPT Web session in Chrome.
+Hardened local OpenAI-compatible APIs backed by authenticated **ChatGPT Web** and **Mistral Web** sessions in dedicated Chrome profiles.
 
-> This project automates the ChatGPT website. It is **not** an official OpenAI API client and inherits the account/session and UI-change risks of browser automation.
+> These bridges automate web interfaces. They are **not** official OpenAI or Mistral API clients and inherit the account/session and UI-change risks of browser automation.
 
-## Hardened fork
+## Providers
 
-This fork keeps the original REST/SSE behavior while tightening the privileged browser-session boundary:
+| Provider | Start | Session init | API | CDP | State |
+|---|---|---|---|---|---|
+| ChatGPT | `npm start` / `npm run start:chatgpt` | `npm run init-session` | `127.0.0.1:3000` | `127.0.0.1:9222` | `data/` |
+| Mistral | `npm run start:mistral` | `npm run init-session:mistral` | `127.0.0.1:3001` | `127.0.0.1:9223` | `data-mistral/` |
 
-- one canonical persistent profile: `data/chrome-profile/`;
-- the whole runtime `data/` directory is ignored by Git;
-- Chrome DevTools Protocol is restricted to loopback;
-- non-loopback API binds require a strong bearer token;
-- optional bearer authentication on loopback;
+Both providers use the same hardened server, storage, logging, queue, authentication, validation, and browser-control implementation. Provider adapters only define the origin, conversation URL pattern, DOM selectors, and external conversation ID field.
+
+- ChatGPT model ID: `chatgpt-web`; external conversation field: `chatgpt_id`
+- Mistral model ID: `mistral-web`; external conversation field: `mistral_id`
+
+## Security properties
+
+- one dedicated persistent profile per provider;
+- runtime profile/state directories ignored by Git;
+- Chrome DevTools Protocol restricted to loopback;
+- non-loopback API binds require a bearer token of at least 32 characters;
+- timing-safe bearer-token comparison;
 - DNS-rebinding-oriented `Host` validation;
-- exact-origin CORS policy instead of `*`;
-- in-memory rate limiting and a bounded serialized request queue;
-- no prompt-content logging or response-content persistence by default;
-- `0700` runtime directories and `0600` state/log files on POSIX;
-- atomic conversation-store writes with a last-known backup;
-- stored browser URLs allowlisted to `https://chatgpt.com`;
-- client disconnects attempt to stop active browser generation;
-- side-effect-free health checks and graceful shutdown;
-- Node.js 20+ runtime alignment with Playwright;
-- deterministic direct dependency pins, CI, security tests, and Dependabot.
-
-## Architecture
-
-```text
-local/native client
-       | HTTP + optional Bearer token
-       v
-chatgpt-api-web
-       | Playwright over loopback CDP
-       v
-Google Chrome
-       | dedicated authenticated profile
-       v
-https://chatgpt.com
-```
-
-The service stores local conversation mappings. Full assistant responses are not persisted unless `STORE_LAST_RESPONSE=true` is explicitly enabled.
+- exact-origin CORS allowlist, never `*`;
+- security response headers and no-store caching;
+- bounded in-memory rate limiting and serialized queue admission;
+- prompt content not logged by default;
+- assistant responses not persisted by default;
+- POSIX runtime directories `0700`, state/log files `0600`, and process umask `077`;
+- atomic conversation-state writes with a last-known backup;
+- provider navigation URLs restricted to the exact expected HTTPS origin/path;
+- disconnected SSE clients attempt to cancel active generation;
+- `/health` never starts a browser as a side effect;
+- direct runtime dependencies limited to pinned Express and Playwright;
+- patched `qs@6.16.0` forced through npm overrides;
+- CI actions pinned to immutable commit SHAs.
 
 ## Requirements
 
 - Node.js 20+
-- Google Chrome
-- a ChatGPT account
 - npm
+- Google Chrome
+- a ChatGPT and/or Mistral account
 
 Default Chrome paths:
 
@@ -61,9 +57,9 @@ Default Chrome paths:
 | Windows | `C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe` |
 | Linux | `/usr/bin/google-chrome` |
 
-Override with `CHROME_PATH` when needed.
+Override with `CHROME_PATH` when required.
 
-## Installation
+## Install
 
 ```bash
 git clone https://github.com/mileadev/chatgpt-api-web.git
@@ -72,51 +68,69 @@ npm ci
 cp .env.example .env
 ```
 
-The application does not automatically parse `.env`; export values through your shell/process manager or use your preferred environment loader.
+The application does not parse `.env` itself; export values through the shell/process manager or use your preferred environment loader.
 
-Recommended API key:
+Generate a bearer token:
 
 ```bash
 export API_KEY="$(openssl rand -hex 32)"
 ```
 
-An API key is optional only while `HOST` remains loopback. It is still recommended for local multi-user systems.
+An API key is optional only on loopback. It is still recommended on shared hosts.
 
-## Initialize the ChatGPT session
+## ChatGPT setup
+
+Initialize the dedicated profile:
 
 ```bash
 npm run init-session
 ```
 
-The initialization command and main server use the **same** profile directory. Sign in to ChatGPT in the opened Chrome window, confirm the site works, then press `Ctrl+C`.
+Sign in to ChatGPT in the opened Chrome window, verify chat works, then press `Ctrl+C`.
 
-Default profile:
-
-```text
-data/chrome-profile/
-```
-
-`data/` is ignored by Git. Never copy or publish the profile; it contains browser session state.
-
-## Start
+Start the API:
 
 ```bash
 npm start
 ```
 
-Default listener:
+Defaults:
 
 ```text
-http://127.0.0.1:3000
+API     http://127.0.0.1:3000
+CDP     http://127.0.0.1:9222
+Profile data/chrome-profile/
+State   data/conversations.json
 ```
 
-With `API_KEY` configured:
+## Mistral setup
+
+Initialize its separate profile:
 
 ```bash
-curl -H "Authorization: Bearer $API_KEY" http://127.0.0.1:3000/v1/models
+npm run init-session:mistral
 ```
 
+Start the Mistral bridge:
+
+```bash
+npm run start:mistral
+```
+
+Defaults:
+
+```text
+API     http://127.0.0.1:3001
+CDP     http://127.0.0.1:9223
+Profile data-mistral/chrome-profile/
+State   data-mistral/conversations.json
+```
+
+Provider-prefixed Mistral settings such as `MISTRAL_PORT`, `MISTRAL_CDP_PORT`, `MISTRAL_API_KEY`, and `MISTRAL_DATA_DIR` keep both providers isolated when run on the same host.
+
 ## OpenAI-compatible completion
+
+ChatGPT example:
 
 ```bash
 curl -sS \
@@ -124,37 +138,26 @@ curl -sS \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "chatgpt-web",
-    "messages": [
-      {"role":"user","content":"Reply with exactly API_OK and nothing else."}
-    ]
+    "model":"chatgpt-web",
+    "messages":[{"role":"user","content":"Reply with exactly API_OK and nothing else."}]
   }'
 ```
 
-The response contains `conversation_id` (local UUID) and `chatgpt_id` (validated ChatGPT Web conversation identifier).
+Mistral uses the same schema at port `3001` with model `mistral-web`.
+
+Responses include a local `conversation_id` plus either `chatgpt_id` or `mistral_id`.
 
 ## Streaming
 
-```bash
-curl -N \
-  -X POST http://127.0.0.1:3000/v1/chat/completions \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" \
-  -d '{
-    "model": "chatgpt-web",
-    "stream": true,
-    "messages": [
-      {"role":"user","content":"Reply with exactly STREAM_OK and nothing else."}
-    ]
-  }'
+Set `"stream": true` and use an SSE client such as `curl -N`. The bridge emits OpenAI-style chunks and ends with:
+
+```text
+data: [DONE]
 ```
 
-The response uses OpenAI-style SSE chunks and ends with `data: [DONE]`. If a streaming client disconnects while ChatGPT is still generating, the bridge attempts to stop the active generation.
+If the client disconnects before completion, the provider adapter attempts to activate the visible stop-generation control.
 
-## Conversation mapping
-
-Routes:
+## Conversation endpoints
 
 ```text
 GET    /v1/conversations
@@ -163,78 +166,43 @@ PATCH  /v1/conversations/:id
 DELETE /v1/conversations/:id
 ```
 
-`DELETE` removes the **local mapping** and closes its managed page. It does not delete the conversation from ChatGPT itself.
+`DELETE` removes only the local mapping and closes its managed browser page. It does **not** delete the remote provider conversation.
 
 ## Health and metrics
 
-Health is intentionally side-effect free; it does not launch Chrome:
+Health is intentionally side-effect free:
 
 ```bash
 curl http://127.0.0.1:3000/health
+curl http://127.0.0.1:3001/health
 ```
 
-It returns HTTP `200` when CDP is reachable and `503` when the browser is unavailable.
+HTTP `200` means that provider's loopback CDP endpoint is reachable; `503` means degraded/unavailable.
 
-Metrics require the same bearer authentication as `/v1` when `API_KEY` is configured:
+Metrics require the same bearer authentication as `/v1` when a key is configured:
 
 ```bash
 curl -H "Authorization: Bearer $API_KEY" http://127.0.0.1:3000/metrics
 ```
 
-## Security controls
-
-### Bind safety
+## Network controls
 
 Safe defaults:
 
 ```env
 HOST=127.0.0.1
 CDP_HOST=127.0.0.1
+MISTRAL_HOST=127.0.0.1
+MISTRAL_CDP_HOST=127.0.0.1
 ```
 
-`CDP_HOST` must remain loopback. If `HOST` is non-loopback, startup requires an `API_KEY` with at least 32 characters.
+CDP hosts must remain loopback. A non-loopback HTTP bind fails startup unless the applicable API key is at least 32 characters.
 
-### Authentication
+Browser requests with an `Origin` header are denied unless the exact origin appears in `ALLOWED_ORIGINS` or `MISTRAL_ALLOWED_ORIGINS`. Native clients without `Origin` continue to work.
 
-When `API_KEY` is configured, clients must send:
+When loopback-bound, `Host` must also be `localhost`, `127.0.0.1`, or `::1`, unless explicitly added to the applicable allowed-host list.
 
-```http
-Authorization: Bearer <API_KEY>
-```
-
-Token comparison uses `crypto.timingSafeEqual` after an equal-length check.
-
-### Browser origins
-
-Requests with no `Origin` header are accepted for native clients and SDKs. Browser-originated requests are denied unless the exact origin is configured:
-
-```env
-ALLOWED_ORIGINS=https://local-ui.example,http://127.0.0.1:8080
-```
-
-Wildcards are intentionally unsupported.
-
-### Host validation
-
-When bound to loopback, `Host` must also be `localhost`, `127.0.0.1`, or `::1`, unless explicitly added to `ALLOWED_HOSTS`. This reduces local DNS-rebinding exposure.
-
-### Rate and queue limits
-
-Defaults:
-
-```env
-RATE_LIMIT_MAX=60
-RATE_LIMIT_WINDOW_MS=60000
-MAX_QUEUE_DEPTH=20
-```
-
-Browser requests remain serialized because DOM control is stateful. The bounded queue prevents an unbounded backlog.
-
-### Local file permissions
-
-On POSIX systems, runtime directories are restricted to `0700` and state/log files to `0600`. Conversation JSON is written to a temporary file, `fsync`ed, then atomically renamed; the previous store is copied to `conversations.json.bak` first.
-
-### Privacy defaults
+## Privacy defaults
 
 ```env
 LOG_PROMPT_CONTENT=false
@@ -242,72 +210,77 @@ STORE_LAST_RESPONSE=false
 LOG_TO_FILE=false
 ```
 
-Enabling these options increases locally retained sensitive information.
+Turning these on intentionally increases locally retained sensitive data.
 
-## Configuration
+## Queue and rate controls
 
-See `.env.example` for the full set. Important variables include:
+```env
+RATE_LIMIT_MAX=60
+RATE_LIMIT_WINDOW_MS=60000
+MAX_QUEUE_DEPTH=20
+MAX_CONVERSATIONS=250
+```
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `HOST` | `127.0.0.1` | API bind address |
-| `PORT` | `3000` | API port |
-| `API_KEY` | empty | bearer token; mandatory for non-loopback bind |
-| `CDP_HOST` | `127.0.0.1` | Chrome CDP host; loopback only |
-| `CDP_PORT` | `9222` | Chrome CDP port |
-| `DATA_DIR` | `data` | runtime state root |
-| `PROFILE_DIR` | `chrome-profile` | browser profile under `DATA_DIR` |
-| `MAX_QUEUE_DEPTH` | `20` | maximum waiting browser requests |
-| `MAX_CONVERSATIONS` | `250` | maximum local mappings |
-| `STORE_LAST_RESPONSE` | `false` | persist last assistant body |
-| `LOG_PROMPT_CONTENT` | `false` | log prompt bodies at debug level |
+Provider browser operations are serialized because DOM automation is stateful. The bounded queue prevents an unbounded backlog.
 
 ## Tests
 
-Deterministic syntax/security/storage checks do not require ChatGPT:
+Deterministic syntax/security/storage/provider-adapter checks:
 
 ```bash
 npm test
 ```
 
-Live end-to-end suite:
+Live integration testing is provider-neutral. Point `API_URL` at the desired running service:
 
 ```bash
-API_KEY="$API_KEY" npm run test:integration
+# ChatGPT
+API_URL=http://127.0.0.1:3000 API_KEY="$API_KEY" npm run test:integration
+
+# Mistral
+API_URL=http://127.0.0.1:3001 MISTRAL_API_KEY="$MISTRAL_API_KEY" npm run test:integration
 ```
 
-The integration suite requires a running authenticated service and checks health, models, non-stream completions, both conversation identifiers, metadata operations, SSE, validation, and cleanup.
+The suite discovers the provider model automatically and validates health, completions, local/external conversation continuity, metadata operations, SSE, input validation, and cleanup.
 
 Compatibility probe:
 
 ```bash
-API_KEY="$API_KEY" npm run test:openai
+API_URL=http://127.0.0.1:3000 API_KEY="$API_KEY" npm run test:openai
 ```
 
-## Dependency policy
+## Dependency and CI policy
 
-Runtime dependencies are intentionally limited to Express and Playwright. Direct dependencies are pinned exactly. Dependabot checks npm dependencies weekly. CI installs from `package-lock.json` with `npm ci --ignore-scripts`, runs deterministic tests, and fails on high-severity production dependency advisories.
+Runtime dependencies are intentionally limited to:
+
+- `express@5.2.1`
+- `playwright@1.62.1`
+
+`qs@6.16.0` is forced as a patched transitive version. The lockfile is committed and CI uses `npm ci --ignore-scripts` before `npm test` and `npm audit --omit=dev --audit-level=high` on Node 20 and 22. Dependabot checks npm dependencies weekly. Third-party workflow actions are pinned to immutable commit SHAs.
+
+Playwright 1.63.0 was released on September 4, 2026; this repository intentionally keeps the previously validated 1.62.1 baseline for this browser-automation workload and lets Dependabot stage upgrades for review rather than silently moving the automation engine.
 
 ## Operational recommendations
 
-1. use a dedicated Chrome profile only for this bridge;
-2. keep the API and CDP on loopback;
-3. configure `API_KEY` even locally when several users/processes share the host;
-4. do not route the service directly to the public Internet;
-5. if remote access is required, use bearer auth plus an authenticated network layer/reverse proxy;
-6. do not centralize prompt logs unless the data classification permits it;
-7. monitor dependency alerts and Chrome/ChatGPT UI changes;
-8. revoke the ChatGPT session immediately if the profile is exposed.
+1. use dedicated provider profiles created by the supplied initialization commands;
+2. keep HTTP and CDP listeners on loopback whenever possible;
+3. configure API keys even locally on multi-user systems;
+4. do not expose either server directly to the public Internet;
+5. for remote access, combine bearer auth with an authenticated network layer or reverse proxy;
+6. avoid centralized prompt logging unless data classification explicitly permits it;
+7. monitor dependency alerts and provider UI changes;
+8. revoke the affected provider session immediately if a profile is exposed.
 
-See [SECURITY.md](SECURITY.md) for incident guidance.
+See [SECURITY.md](SECURITY.md) for exposure-response guidance.
 
-## Known limitations
+## Limitations
 
-- ChatGPT Web DOM changes can break selectors without notice.
-- System messages are emulated by prepending text to the browser prompt; this is not equivalent to an official API system role.
-- Token usage is unavailable from this DOM bridge, so `usage` is `null`.
-- SSE cannot retract already-emitted text if ChatGPT rewrites a streamed DOM segment.
-- This architecture grants the process effective control of a signed-in browser session.
+- ChatGPT or Mistral DOM changes can break selectors without notice.
+- System messages are emulated as text prepended to the browser prompt; they are not equivalent to official API system roles.
+- Token usage is unavailable from the DOM bridge, so `usage` is `null`.
+- SSE cannot retract already-emitted text if a provider rewrites an existing streamed DOM segment.
+- The model IDs describe the web bridge, not an independently selectable official provider model/API SKU.
+- Each process controls an authenticated browser profile and should be treated as a privileged local service.
 
 ## Attribution
 
