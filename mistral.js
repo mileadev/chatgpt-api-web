@@ -2458,3 +2458,4 @@ startServer().catch(error => {
 
 // Export for MCP server
 module.exports = { app, browserManager, storage, conversationManager, metrics, logger, SERVICE_NAME, VERSION };
+
