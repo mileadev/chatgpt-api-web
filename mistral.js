@@ -819,12 +819,15 @@ class Storage {
   }
 }
 
+// Global interval trackers for cleanup
+let cleanupIntervals = [];
 const storage = new Storage();
 
 // Periodic cleanup
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   storage.cleanupEmptyConversations();
 }, CLEANUP_INTERVAL);
+cleanupIntervals.push(cleanupInterval);
 
 /* =========================================================
    CONVERSATION MANAGEMENT
@@ -1509,10 +1512,10 @@ async function isGenerating(page) {
     '[data-testid="stop-button"]',
     '[data-testid="stop-generating"]',
     'button[aria-label*="Stop" i]',
-    'button[aria-label*="Arrêter" i]',
+    'button[aria-label*="Arr�ter" i]',
     'button[aria-label*="Parar" i]',
     'button:has-text("Stop")',
-    'button:has-text("Arrêter")',
+    'button:has-text("Arr�ter")',
     'button:has-text("Parar")',
     '.stop-button',
     '.btn-stop',
@@ -2307,6 +2310,9 @@ async function shutdown() {
       browserManager.chromeProcess = null;
     }
 
+    // Clear all cleanup intervals
+    cleanupIntervals.forEach(interval => clearInterval(interval));
+    cleanupIntervals = [];
     // Close logger
     logger.close();
 
@@ -2408,20 +2414,20 @@ async function startServer() {
   });
 
   const server = app.listen(PORT, HOST, () => {
-    logger.info(`╔═══════════════════════════════════════════════════════════╗`);
-    logger.info(`║  ${SERVICE_NAME} v${VERSION}                          ║`);
-    logger.info(`║  Mistral Web Chat API - Production Ready            ║`);
-    logger.info(`╠═══════════════════════════════════════════════════════════╣`);
-    logger.info(`║  Server:      http://${HOST}:${PORT}                  ║`);
-    logger.info(`║  Chrome CDP:  ${CDP_URL}                           ║`);
-    logger.info(`║  Health:      http://${HOST}:${PORT}/health          ║`);
-    logger.info(`║  Metrics:     http://${HOST}:${PORT}/metrics         ║`);
-    logger.info(`║  OpenAPI:     http://${HOST}:${PORT}/openapi.json    ║`);
-    logger.info(`║  Docs:        http://${HOST}:${PORT}/docs            ║`);
-    logger.info(`╚═══════════════════════════════════════════════════════════╝`);
+    logger.info(`TPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPW`);
+    logger.info(`Q  ${SERVICE_NAME} v${VERSION}                          Q`);
+    logger.info(`Q  Mistral Web Chat API - Production Ready            Q`);
+    logger.info(``PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPc`);
+    logger.info(`Q  Server:      http://${HOST}:${PORT}                  Q`);
+    logger.info(`Q  Chrome CDP:  ${CDP_URL}                           Q`);
+    logger.info(`Q  Health:      http://${HOST}:${PORT}/health          Q`);
+    logger.info(`Q  Metrics:     http://${HOST}:${PORT}/metrics         Q`);
+    logger.info(`Q  OpenAPI:     http://${HOST}:${PORT}/openapi.json    Q`);
+    logger.info(`Q  Docs:        http://${HOST}:${PORT}/docs            Q`);
+    logger.info(`ZPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP]`);
     
     if (REQUIRE_API_KEY) {
-      logger.warn(`⚠️  API key authentication is ENABLED`);
+      logger.warn(`�  API key authentication is ENABLED`);
     }
     
     logger.info(`Configuration: PORT=${PORT}, CDP_PORT=${CDP_PORT}, MISTRAL_URL=${MISTRAL_URL}`);
