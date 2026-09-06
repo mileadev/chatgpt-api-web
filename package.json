@@ -1,7 +1,7 @@
 {
   "name": "chatgpt-api-web",
   "version": "2.0.0-perfect",
-  "description": "Production-grade Mistral Web Chat API with MCP Server support",
+  "description": "Production-grade Mistral Web Chat API with MCP Server support and automated Chrome/Chromium provisioning",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -21,7 +21,10 @@
     "web",
     "automation",
     "mcp",
-    "model-context-protocol"
+    "model-context-protocol",
+    "chrome",
+    "chromium",
+    "provisioning"
   ],
   "author": "mileadev",
   "license": "MIT",
@@ -31,6 +34,7 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
+    "extract-zip": "^2.0.1",
     "helmet": "^7.1.0",
     "playwright": "^1.44.0"
   },
