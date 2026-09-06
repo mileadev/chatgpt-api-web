@@ -36,6 +36,6 @@ Git history rewriting does not invalidate credentials by itself.
 
 - Keep provider profiles out of backups or artifact uploads unless encrypted and explicitly required.
 - Keep `LOG_PROMPT_CONTENT=false` and `STORE_LAST_RESPONSE=false` unless retention is intentional.
-- Keep `TRUST_PROXY=false` unless the service is behind a controlled proxy and forwarded-address behavior is understood.
+- Keep `TRUST_PROXY_HOPS=0` unless a controlled reverse proxy is in front; if enabled, set only the exact number of trusted hops needed for the deployment.
 - Do not weaken the exact provider-origin checks in `lib/browser.js` or exact browser-origin policy in `lib/security.js`.
 - Review dependency and CI alerts before upgrading browser automation because provider DOM behavior can regress independently of semver compatibility.
